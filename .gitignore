@@ -1,0 +1,26 @@
+# Node modules
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Build output
+dist/
+build/
+
+# Editor-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Linting and formatting cache
+.eslintcache
+.prettierignore
+.eslintignore
+
+# Chrome extension specific
+*.zip # If you zip your extension for submission
