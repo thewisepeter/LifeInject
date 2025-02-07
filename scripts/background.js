@@ -1,48 +1,35 @@
-// Set initial state on installation
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.set({ enabled: true }); // Default to ON
-  chrome.action.setBadgeText({ text: 'ON' });
+  chrome.action.setBadgeText({ text: 'OFF' });
+  chrome.storage.sync.set({ isEnabled: false }); // Default state is OFF
 });
 
-// Toggle extension on/off when the action button is clicked
 chrome.action.onClicked.addListener(async (tab) => {
-  try {
-    // Get the current state from storage
-    let { enabled } = await chrome.storage.local.get('enabled');
-    enabled = !enabled; // Toggle state
+  // Retrieve the current badge text to check if the extension is 'ON' or 'OFF'
+  const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
+  const nextState = prevState === 'ON' ? 'OFF' : 'ON';
 
-    // Save the new state
-    await chrome.storage.local.set({ enabled });
+  // Update badge text
+  await chrome.action.setBadgeText({ tabId: tab.id, text: nextState });
 
-    // Update the action button badge
-    chrome.action.setBadgeText({
-      tabId: tab.id,
-      text: enabled ? 'ON' : 'OFF',
-    });
+  // Update storage state
+  const isEnabled = nextState === 'ON';
+  await chrome.storage.sync.set({ isEnabled });
 
-    // Send a message to the content script to enable/disable ad replacement
-    chrome.tabs.sendMessage(tab.id, { action: 'toggleAdFriend', enabled });
-  } catch (error) {
-    console.error('Error toggling AdFriend:', error);
-  }
+  // Send message to the content script in the active tab to toggle the ad replacement
+  chrome.tabs.sendMessage(tab.id, { action: isEnabled ? 'ENABLE' : 'DISABLE' });
 });
 
-// Notify content script when the tab is updated or reloaded
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+// Listen for tab updates to ensure state persists across reloads
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete') {
-    try {
-      const { enabled } = await chrome.storage.local.get('enabled');
+    chrome.storage.sync.get('isEnabled', ({ isEnabled }) => {
+      const badgeText = isEnabled ? 'ON' : 'OFF';
+      chrome.action.setBadgeText({ tabId, text: badgeText });
 
-      // Update the badge to reflect the current state
-      chrome.action.setBadgeText({
-        tabId: tab.id,
-        text: enabled ? 'ON' : 'OFF',
+      // Send message to content script to apply the correct state
+      chrome.tabs.sendMessage(tabId, {
+        action: isEnabled ? 'ENABLE' : 'DISABLE',
       });
-
-      // Send the correct state to the content script
-      chrome.tabs.sendMessage(tabId, { action: 'toggleAdFriend', enabled });
-    } catch (error) {
-      console.error('Error updating AdFriend state on tab update:', error);
-    }
+    });
   }
 });
