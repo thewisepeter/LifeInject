@@ -188,12 +188,10 @@ function getRandomQuote() {
         'Every time I see high-trust cultures, I see a lessening of adversarialism.',
     },
     { quote: "What is common sense isn't common practice." },
-    { quote: 'Mind over mattress.' },
     {
       quote:
         'An empowered organisation is one in which individuals have the knowledge, skill, desire, and opportunity to personally succeed in a way that leads to collective organisational success.',
     },
-    { quote: 'Mind over mattress.' },
   ];
   return quotes[Math.floor(Math.random() * quotes.length)];
 }
@@ -214,6 +212,11 @@ async function replaceAds() {
       'div[id^="ad-"]',
       'div[data-ad="true"]',
       'ins.adsbygoogle',
+      'div.trc_rbox_container',
+      'span.branding-inner.inline-branding',
+      'a.trc_desktop_disclosure_link',
+      'a.trc_mobile_disclosure_link',
+      'div.logoDiv.link-disclosure',
     ];
 
     const ads = document.querySelectorAll(adSelectors.join(','));
@@ -221,8 +224,18 @@ async function replaceAds() {
     ads.forEach((ad) => {
       console.log('🚀 Hiding an ad:', ad);
 
+      // Get the original ad dimensions
+      const rect = ad.getBoundingClientRect();
+
+      // Remove iframes inside the ad container
+      const iframe = ad.querySelector('iframe');
+      if (iframe) {
+        console.log('🚀 Found iframe inside ad, removing it...');
+        iframe.remove(); // Remove iframe first
+      }
+
       // Create replacement widget
-      let replacement = document.createElement('div');
+      const replacement = document.createElement('div');
       replacement.style.cssText = `
         background-color: #008080;
         border: 1px solid #000000;
@@ -232,7 +245,11 @@ async function replaceAds() {
         color: #ffffff;
         text-align: center;
         font-family: Calibri, sans-serif;
-        max-width: 300px;
+        width: ${rect.width}px;  /* Match ad width */
+        height: ${rect.height}px; /* Match ad height */
+        display: flex;
+        align-items: center;
+        justify-content: center;
       `;
 
       // Add quote text
