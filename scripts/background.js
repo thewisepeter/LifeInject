@@ -1,35 +1,44 @@
 chrome.runtime.onInstalled.addListener(() => {
   chrome.action.setBadgeText({ text: 'OFF' });
-  chrome.storage.sync.set({ isEnabled: false }); // Default state is OFF
+  chrome.storage.sync.set({}); // Initializing storage with no states for domains
 });
 
-chrome.action.onClicked.addListener(async (tab) => {
-  // Retrieve the current badge text to check if the extension is 'ON' or 'OFF'
-  const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
-  const nextState = prevState === 'ON' ? 'OFF' : 'ON';
+chrome.action.onClicked.addListener(async () => {
+  // Get the current active tab
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const domain = new URL(tab.url).hostname; // Get the domain of the current tab
 
-  // Update badge text
-  await chrome.action.setBadgeText({ tabId: tab.id, text: nextState });
+  // Get the current state for the domain
+  const { [domain]: isEnabled } = await chrome.storage.sync.get([domain]);
+  const nextState = !isEnabled; // Toggle state
 
-  // Update storage state
-  const isEnabled = nextState === 'ON';
-  await chrome.storage.sync.set({ isEnabled });
+  // Update storage for that specific domain
+  const newState = { [domain]: nextState };
+  await chrome.storage.sync.set(newState);
 
-  // Send message to the content script in the active tab to toggle the ad replacement
-  chrome.tabs.sendMessage(tab.id, { action: isEnabled ? 'ENABLE' : 'DISABLE' });
+  // Update the badge text
+  await chrome.action.setBadgeText({ text: nextState ? 'ON' : 'OFF' });
+
+  // Reload the current tab to reflect the change
+  chrome.tabs.reload(tab.id);
 });
 
-// Listen for tab updates to ensure state persists across reloads
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete') {
-    chrome.storage.sync.get('isEnabled', ({ isEnabled }) => {
-      const badgeText = isEnabled ? 'ON' : 'OFF';
-      chrome.action.setBadgeText({ tabId, text: badgeText });
-
-      // Send message to content script to apply the correct state
-      chrome.tabs.sendMessage(tabId, {
-        action: isEnabled ? 'ENABLE' : 'DISABLE',
-      });
+// Ensure the badge text reflects the current state for the active tab when reloaded
+const updateBadgeForTab = (tabId) => {
+  chrome.tabs.get(tabId, (tab) => {
+    const domain = new URL(tab.url).hostname; // Get the domain of the current tab
+    chrome.storage.sync.get([domain], ({ [domain]: isEnabled }) => {
+      chrome.action.setBadgeText({ tabId, text: isEnabled ? 'ON' : 'OFF' });
     });
+  });
+};
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === 'complete') {
+    updateBadgeForTab(tabId);
   }
+});
+
+chrome.tabs.onCreated.addListener((tab) => {
+  updateBadgeForTab(tab.id);
 });
