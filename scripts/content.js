@@ -1,4 +1,4 @@
-console.log('AdFriend script running');
+console.log('LifeInject script running');
 
 // Function to get the current domain
 function getDomain() {
@@ -30,13 +30,21 @@ async function getRandomVerse() {
     // Extract the verse content and remove HTML tags
     const rawContent = data.data.content;
     const plainText = rawContent.replace(/<[^>]+>/g, ''); // Remove HTML tags
-    const verseRef = `📖 Psalm (${randomChapter}:${randomVerse})`;
 
-    console.log(`📖 Psalm (${randomChapter}:${randomVerse}): ${plainText}`);
-    return { verseText: plainText, verseRef };
+    // Extract the text after the number
+    const verseText = plainText.replace(/^\d+[.\s]*/, ''); // Remove leading numbers and punctuation
+
+    const verseRef = `📖 Psalm ${randomChapter}:${randomVerse}`;
+
+    console.log(`📖 Psalm (${randomChapter}:${randomVerse}): ${verseText}`);
+    return { verseText, verseRef };
   } catch (error) {
     console.error('Error fetching random Psalm', error);
-    return 'Error loading verse.';
+    return {
+      verseText:
+        'For God so loved the world that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life',
+      verseRef: 'John 3:16',
+    };
   }
 }
 
@@ -47,7 +55,7 @@ async function replaceAds() {
   chrome.storage.sync.get([domain], async ({ [domain]: isEnabled }) => {
     if (!isEnabled) return; // Stop if not enabled for this site
 
-    console.log(`🚀 AdFriend is active on ${domain}`);
+    console.log(`🚀 LifeInject is active on ${domain}`);
 
     // Ad selectors
     const adSelectors = [
@@ -61,7 +69,7 @@ async function replaceAds() {
       'a.trc_desktop_disclosure_link',
       'a.trc_mobile_disclosure_link',
       'div.logoDiv.link-disclosure',
-      // 'div.side-ad-trail',
+      'div.side-ad-trail',
     ];
 
     const ads = document.querySelectorAll(adSelectors.join(','));
@@ -79,17 +87,21 @@ async function replaceAds() {
         iframe.remove(); // Remove iframe first
       }
 
+      // Get image path from extension storage
+      const backgroundImage = chrome.runtime.getURL('images/paper.jpg');
+
       // Create replacement widget
       const replacement = document.createElement('div');
       replacement.style.cssText = `
-          background-image: url('../images/paper.jpg');
+          border-left: 3px solid #800020;
+          background-image: url('${backgroundImage}');
           background-size: cover;
           border-radius: 10px;
           padding: 20px;
           font-size: 18px;
           color: #333333;
           text-align: center;
-          font-family: Calibri, sans-serif;
+          font-family: Georgia, Times, "Times New Roman", serif;
           width: ${rect.width}px;  /* Match ad width */
           height: ${rect.height}px; /* Match ad height */
           display: flex;
@@ -104,22 +116,64 @@ async function replaceAds() {
       text.textContent = 'Loading verse...'; // Placeholder while fetching
       text.style.margin = '0';
       text.style.fontSize = '16px';
-      text.style.fontFamily = '"Dancing Script", cursive'; // Handwritten font
+      // text.style.fontFamily = '"Dancing Script", cursive'; // Handwritten font
       text.style.lineHeight = '1.5';
       text.style.whiteSpace = 'pre-wrap'; // Ensure the verse wraps correctly
       replacement.appendChild(text);
 
       // Create footer for the verse reference
+      // Create footer for the verse reference
       const footer = document.createElement('div');
       footer.style.cssText = `
-        margin-top: 15px;
-        font-size: 14px;
-        font-family: "Calibri", sans-serif;
-        color: #555555;
-        font-style: italic;
-      `;
-
+          margin-top: 15px;
+          font-size: 14px;
+          font-family: "Calibri", sans-serif;
+          color: #555555;
+          font-style: italic;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        `;
       const { verseText, verseRef } = await getRandomVerse();
+      // Add the text content to the footer
+      footer.textContent = verseRef;
+
+      // Add pseudo-elements for the artistic curls
+      footer.style.position = 'relative'; // Ensure pseudo-elements are positioned correctly
+
+      // Create a style element for the pseudo-elements
+      // Create a style element for the pseudo-elements
+      const style = document.createElement('style');
+      style.textContent = `
+          .footer-with-lines::before,
+          .footer-with-lines::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 50px; /* Length of the line */
+            height: 1px; /* Thickness of the line */
+            background-color: #800020; /* Color of the line */
+            transform: translateY(-50%);
+          }
+
+          .footer-with-lines::before {
+            left: -60px; /* Position to the left of the text */
+          }
+
+          .footer-with-lines::after {
+            right: -60px; /* Position to the right of the text */
+          }
+        `;
+
+      // Append the style element to the document head
+      document.head.appendChild(style);
+
+      // Add the class to the footer
+      footer.classList.add('footer-with-lines');
+
+      // Append the footer to the replacement widget
+      replacement.appendChild(footer);
 
       // Fetch a random verse and update text
       text.textContent = verseText;
