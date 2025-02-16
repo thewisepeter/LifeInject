@@ -27,5 +27,11 @@
       "matches": ["<all_urls>"],
       "run_at": "document_idle"
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["images/paper.jpg"],
+      "matches": ["<all_urls>"]
+    }
   ]
 }
