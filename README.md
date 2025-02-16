@@ -26,7 +26,7 @@ _(Coming soon!)_
 
    - Clone this repository or download the ZIP file:
      ```bash
-     git clone https://github.com/thewisepeter/AdFriend.git
+     git clone https://github.com/thewisepeter/LifeInject.git
      ```
    - Extract the files if you downloaded a ZIP.
 
@@ -121,7 +121,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 ## **Support**
 
-If you encounter any issues or have suggestions, please [open an issue](https://github.com/thewisepeter/AdFriend/issues) on GitHub.
+If you encounter any issues or have suggestions, please [open an issue](https://github.com/thewisepeter/LifeInject/issues) on GitHub.
 
 ---
 
